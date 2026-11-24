@@ -2,9 +2,7 @@
 
 A complete, educational, and explainable Python ground station monitoring system simulating the **Astraea-1** spacecraft. The system simulates 9 sensor telemetry channels, transmits data across an authentic local TCP link using Newline-Delimited JSON (NDJSON), injects artificial subsystem faults, detects anomalies using static thresholds and historical rolling-averages from SQLite, and displays live metrics in a responsive Tkinter desktop dashboard.
 
-Designed specifically for computer science students, academic evaluations, and project viva voce demonstrations.
 
----
 
 ## 1. Project Objective
 
