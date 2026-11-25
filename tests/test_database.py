@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import os
 import tempfile
 import unittest
+import csv
 
 from config import CHANNEL_CONFIGS, SPACECRAFT_ID
 from database import DatabaseManager
@@ -136,5 +137,70 @@ class TestDatabase(unittest.TestCase):
         reopened_db.close()
 
 
+    
+
+
+
+    
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_export_anomalies_to_csv(self):
+        frame = TelemetryFrame(
+            spacecraft_id=SPACECRAFT_ID,
+            sequence_number=200,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            readings={
+                name: ch.nominal_center
+                for name, ch in CHANNEL_CONFIGS.items()
+            },
+        )
+        frame_id = self.db.insert_telemetry_frame(frame)
+
+        self.db.insert_anomaly(
+            frame_id=frame_id,
+            channel_name="battery_temp",
+            observed_value=45.0,
+            severity="WARNING",
+            detection_type="THRESHOLD",
+            reason="High temperature",
+            timestamp=frame.timestamp,
+        )
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, newline="", encoding="utf-8"
+        ) as csvfile:
+            csv_path = csvfile.name
+
+        try:
+            exported_count = self.db.export_anomalies_to_csv(csv_path)
+
+            self.assertEqual(exported_count, 1)
+
+            with open(csv_path, "r", newline="", encoding="utf-8") as csvfile:
+                reader = csv.DictReader(csvfile)
+                self.assertEqual(
+                    reader.fieldnames,
+                    [
+                        "id",
+                        "frame_id",
+                        "channel_name",
+                        "observed_value",
+                        "severity",
+                        "detection_type",
+                        "reason",
+                        "timestamp",
+                    ],
+                )
+
+                rows = list(reader)
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]["channel_name"], "battery_temp")
+                self.assertEqual(rows[0]["severity"], "WARNING")
+                self.assertEqual(rows[0]["reason"], "High temperature")
+        finally:
+            if os.path.exists(csv_path):
+                os.remove(csv_path)

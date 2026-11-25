@@ -12,6 +12,7 @@ import json
 import sqlite3
 import threading
 from typing import Any, Dict, List, Optional, Tuple
+import csv
 
 from config import DEFAULT_DB_PATH
 from telemetry import TelemetryFrame
@@ -222,6 +223,29 @@ class DatabaseManager:
                 LIMIT ?
             """, (limit,))
             return [dict(row) for row in cursor.fetchall()]
+    
+    def export_anomalies_to_csv(self, file_path: str, limit: int = 50) -> int:
+        """Export recent anomaly records to a CSV file and return the row count."""
+        anomalies = self.get_recent_anomalies(limit)
+
+        fieldnames = [
+            "id",
+            "frame_id",
+            "channel_name",
+            "observed_value",
+            "severity",
+            "detection_type",
+            "reason",
+            "timestamp",
+        ]
+
+        with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(anomalies)
+
+        return len(anomalies)
+    
 
     def get_channel_history(self, channel_name: str, limit: int = 100) -> List[Dict[str, Any]]:
         """
